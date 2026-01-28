@@ -19,18 +19,7 @@ var (
 		drive.DriveScope, drive.DriveAppdataScope,
 		drive.DriveMetadataScope, drive.DriveMetadataReadonlyScope,
 	}
-	conf = &oauth2.Config{
-		// ClientID:     "492799813423-5acrke2ei1lrcuf5fiqu21ugcgftlcmr.XXXXXX",
-		// ClientSecret: "GOCSPX-XXXXXXXXXXX",
-		// Scopes:       scopes,
-		// // Url of the application callback where the server is sending the response of authorization include code
-		// RedirectURL: "https://path/sh/oauth2/driver/callback",
-		// Endpoint: oauth2.Endpoint{
-		// 	// Url of authentication server
-		// 	AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-		// 	TokenURL: "https://oauth2.googleapis.com/token",
-		// },
-	}
+	conf = &oauth2.Config{}
 )
 
 type CodeEvent struct {
