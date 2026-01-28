@@ -45,8 +45,8 @@ func receiveMessage(clAuth *token.ClientAuth) {
 
 func NewServiceDrive() {
 	cl, err := token.NewClientAuth(
-		token.WithClientID("492799813423-5acrke2ei1lrcuf5fiqu21ugcgftlcmr.apps.googleusercontent.com"),
-		token.WithClientSecret("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"),
+		token.WithClientID("XXXXXXX"),
+		token.WithClientSecret("GOCSPX-XXXXX"),
 		token.WithScopes([]string{
 			drive.DriveScope, drive.DriveAppdataScope,
 			drive.DriveMetadataScope, drive.DriveMetadataReadonlyScope,
