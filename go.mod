@@ -1,4 +1,4 @@
-module ecs_auth
+module github.com/ecsavigne/ecs_auth
 
 go 1.25.5
 

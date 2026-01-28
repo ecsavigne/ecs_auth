@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	token "ecs_auth/clientAuth"
+	token "github.com/ecsavigne/ecs_auth/clientAuth"
 
 	"github.com/ecsavigne/ecs_socket/client"
 	"github.com/ecsavigne/ecs_socket/socket_type"
