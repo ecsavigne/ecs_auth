@@ -85,9 +85,17 @@ cl, err := token.NewClientAuth(
 
 ### GetToken() - Flujo Asíncrono
 
-La función `GetToken()` inicia el flujo de autenticación OAuth2 de forma asíncrona. Los eventos se comunican a través de channels y debe ser ejecutada en una goroutine:
+La función `GetToken()` inicia el flujo de autenticación OAuth2 de forma asíncrona. No toma parámetros y se comunica exclusivamente a través de channels.
+
+**Comportamiento:**
+- Si no existe un token válido en `token.json`, genera la URL de autenticación
+- Espera recibir el código del intercambio en el channel `Code`
+- Intercambia el código por un token OAuth2
+- Envía el token final al channel `Token`
+- Si el token existe pero expiró, lo renueva automáticamente
 
 ```go
+// Iniciar el flujo de autenticación
 go cl.GetToken()
 ```
 
@@ -186,19 +194,14 @@ func receiveMessage(clAuth *token.ClientAuth) {
 
 		if code != "" {
 			fmt.Println("Código recibido:", code)
+			// Envía el código al channel
+			codeCh <- token.CodeEvent{Code: code}
 			break
-		} else {
-			fmt.Println("Código no encontrado, reintentando...")
-			codeCh <- token.CodeEvent{Code: ""}
-			return
 		}
 	}
-
-	// Envía el código al channel
-	codeCh <- token.CodeEvent{Code: code}
 }
 
-func NewServiceDrive() {
+func main() {
 	cl, err := token.NewClientAuth(
 		token.WithClientID("YOUR_CLIENT_ID"),
 		token.WithClientSecret("YOUR_CLIENT_SECRET"),
@@ -220,6 +223,9 @@ func NewServiceDrive() {
 	// Inicia la recepción de código en goroutine
 	go receiveMessage(cl)
 	
+	// Inicia la generación de URL y verificador en goroutine
+	go cl.GetUrlAuth()
+	
 	// Inicia el flujo de autenticación en goroutine
 	go cl.GetToken()
 
@@ -235,25 +241,15 @@ func NewServiceDrive() {
 			fmt.Println("🔐 URL de autenticación:")
 			fmt.Println(urlEvent.Url)
 			fmt.Println("Por favor, visita esta URL para autorizar la aplicación")
+		
+		case verifierEvent := <-cl.Verifier:
+			fmt.Println("Verificador PKCE generado")
 		}
 	}
-}
-
-func main() {
-	NewServiceDrive()
 }
 ```
 
 ## Métodos Adicionales
-
-### GetTokenSource(funcGetCode FuncGetCode) oauth2.TokenSource
-Retorna una fuente de tokens que se auto-refresca cuando expira.
-
-```go
-tokenSource := cl.GetTokenSource(func() string {
-	return "codigo-de-intercambio"
-})
-```
 
 ### SetTokenInFile(tok *oauth2.Token)
 Guarda el token en un archivo `token.json`.
@@ -267,6 +263,9 @@ Recupera un token desde un archivo.
 
 ```go
 tok := cl.GetTokenOfFile("token.json")
+if tok == nil {
+	fmt.Println("Token no encontrado")
+}
 ```
 
 ### GetTokenOfStr(tokenStr string) *oauth2.Token
@@ -276,20 +275,23 @@ Convierte una cadena JSON a un token OAuth2.
 tok := cl.GetTokenOfStr(jsonString)
 ```
 
-### TokenNotExpired(tok *oauth2.Token) bool
-Verifica si el token sigue siendo válido.
-
-```go
-if cl.TokenNotExpired(tok) {
-	fmt.Println("✅ Token is still valid")
-}
-```
-
 ### TokenToBytes(tok *oauth2.Token) []byte
 Convierte un token a su representación en bytes (JSON).
 
 ```go
 tokenBytes := cl.TokenToBytes(tok)
+fmt.Println("Token en bytes:", string(tokenBytes))
+```
+
+### GetUrlAuth()
+Genera la URL de autenticación y el verificador PKCE, enviándolos a los channels correspondientes.
+
+```go
+go cl.GetUrlAuth()
+
+// Esto enviará eventos a:
+// cl.Verifier <- VerifierEvent{verifier}
+// cl.Url <- UrlEvent{url}
 ```
 
 ### GetState() string
@@ -297,6 +299,7 @@ Retorna el state actual usado en la autenticación.
 
 ```go
 state := cl.GetState()
+fmt.Println("Estado:", state)
 ```
 
 ## Flujo de Autenticación
@@ -304,27 +307,37 @@ state := cl.GetState()
 El flujo de autenticación sigue estos pasos:
 
 1. **Inicialización**: Se crea una instancia de `ClientAuth` con las credenciales.
+   - Se generan los 4 channels internamente
 
-2. **Generación de PKCE**: Se genera un verificador PKCE para proteger contra ataques CSRF.
-   - Se envía al channel `Verifier`
+2. **Generación de URL y Verificador PKCE**: 
+   - Se llamar a `GetUrlAuth()` (generalmente en una goroutine)
+   - Genera un verificador PKCE y lo envía al channel `Verifier`
+   - Genera la URL de consentimiento y la envía al channel `Url`
 
-3. **Generación de URL**: Se crea una URL de consentimiento para el usuario.
-   - Se envía al channel `Url`
-   - El usuario debe visitar esta URL y autorizar la aplicación
+3. **Presentación al Usuario**: 
+   - El usuario visita la URL recibida en el channel `Url`
+   - Autoriza la aplicación en Google (u otro proveedor)
+   - Es redirigido a la URL de redirección con el código
 
-4. **Obtención del Código**: El usuario es redirigido a la URL de consentimiento.
-   - El código de intercambio se envía al channel `Code`
-   - Puede obtenerse mediante WebSocket, HTTP, o cualquier otro mecanismo
+4. **Obtención del Código**: 
+   - Tu aplicación recibe el código (mediante WebSocket, HTTP, etc.)
+   - Lo envía al channel `Code`
 
-5. **Intercambio de Código**: Se intercambia el código por un token OAuth2.
-   - Se utiliza el verificador PKCE para la seguridad
+5. **Intercambio de Código**:
+   - `GetToken()` recibe el verificador del channel `Verifier`
+   - Recibe el código del channel `Code`
+   - Intercambia el código por un token OAuth2 usando el verificador PKCE
 
-6. **Token Disponible**: El token se envía al channel `Token`.
-   - Contiene el token, su fuente, y su representación en bytes
+6. **Token Disponible**: 
+   - El token se envía al channel `Token`
+   - Contiene: token, su fuente, y su representación en bytes
 
-7. **Almacenamiento**: El token se guarda automáticamente en `token.json`.
+7. **Almacenamiento**: 
+   - El token se guarda automáticamente en `token.json`
 
-8. **Renovación Automática**: Si el token expira, se renueva automáticamente.
+8. **Usos Futuros**: 
+   - Si llamar a `GetToken()` nuevamente con un token existente y válido, se usa directamente
+   - Si el token expiró, se renueva automáticamente
 
 ## Seguridad
 
