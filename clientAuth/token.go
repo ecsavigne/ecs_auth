@@ -1,4 +1,4 @@
-package ClientAuth
+package clientAuth
 
 import (
 	"bytes"
@@ -229,7 +229,8 @@ func randState() string {
 // If the token is nil or not valid, it will redirect the user to the consent page
 // to ask for permission for the scopes specified above.
 // The HTTP Client returned by conf.Client will refresh the token as necessary.
-func (self *ClientAuth) GetToken() {
+// fromURL indicates whether the token should be retrieved from the URL
+func (self *ClientAuth) GetToken(fromURL ...bool) {
 	var (
 		tok *oauth2.Token = self.GetTokenOfFile("token.json")
 		err error
@@ -239,8 +240,12 @@ func (self *ClientAuth) GetToken() {
 	//  if not existe token or not valid
 	if tok == nil {
 
-		// url, verifier := self.GetUrlAuth()
-		go self.GetUrlAuth()
+		if len(fromURL) > 0 && fromURL[0] {
+			go self.GetUrlAuth()
+		} else {
+			verifier := oauth2.GenerateVerifier()
+			self.Verifier <- VerifierEvent{verifier}
+		}
 		// Use the authorization code that is pushed to the redirect
 		// URL. Exchange will do the handshake to retrieve the
 		// initial access token. The HTTP Client returned by
@@ -255,7 +260,6 @@ func (self *ClientAuth) GetToken() {
 		// code = funcGetCode()
 		code = (<-self.Code).Code
 
-		fmt.Println("Code 1: ", code)
 		// Troca o code pelo token
 		tok, err = conf.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 		if err != nil {
