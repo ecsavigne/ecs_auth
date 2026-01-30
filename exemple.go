@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	token "github.com/ecsavigne/ecs_auth/clientAuth"
+	"google.golang.org/api/drive/v3"
 
 	"github.com/ecsavigne/ecs_socket/client"
 	"github.com/ecsavigne/ecs_socket/socket_type"
@@ -43,32 +45,32 @@ func receiveMessage(clAuth *token.ClientAuth) {
 }
 
 func NewServiceDrive() {
-	cl, err := token.NewClientAuth(
-		token.WithClientID("765398235585526"),
-		token.WithClientSecret("7520958c0de34fdbddbdce0ed7822293"),
-		token.WithScopes([]string{"whatsapp_business_messaging", "whatsapp_business_management"}),
-		token.WithRedirectURL("https://oficial.crmsocialhub.com.br/sh/oauth2/facebook/callback"),
-		token.WithAuthURL("https://www.facebook.com/v24.0/dialog/oauth"),
-		token.WithTokenURL("https://graph.facebook.com/v24.0/oauth/access_token"),
-	)
 	// cl, err := token.NewClientAuth(
-	// 	token.WithClientID("XXXXXXX"),
-	// 	token.WithClientSecret("GOCSPX-XXXXX"),
-	// 	token.WithScopes([]string{
-	// 		drive.DriveScope, drive.DriveAppdataScope,
-	// 		drive.DriveMetadataScope, drive.DriveMetadataReadonlyScope,
-	// 	}),
-	// 	token.WithRedirectURL("https://oficial.crmsocialhub.com.br/sh/oauth2/driver/callback"),
-	// 	token.WithAuthURL("https://accounts.google.com/o/oauth2/auth"),
-	// 	token.WithTokenURL("https://oauth2.googleapis.com/token"),
+	// 	token.WithClientID(""),
+	// 	token.WithClientSecret(""),
+	// 	token.WithScopes([]string{"whatsapp_business_messaging", "whatsapp_business_management"}),
+	// 	token.WithRedirectURL("https://oficial.crmsocialhub.com.br/sh/oauth2/facebook/callback"),
+	// 	token.WithAuthURL("https://www.facebook.com/v24.0/dialog/oauth"),
+	// 	token.WithTokenURL("https://graph.facebook.com/v24.0/oauth/access_token"),
 	// )
+	cl, err := token.NewClientAuth(
+		token.WithClientID(os.Getenv("CLIENt_ID")),
+		token.WithClientSecret(os.Getenv("CLIENT_SECRET")),
+		token.WithScopes([]string{
+			drive.DriveScope, drive.DriveAppdataScope,
+			drive.DriveMetadataScope, drive.DriveMetadataReadonlyScope,
+		}),
+		token.WithRedirectURL("https://oficial.crmsocialhub.com.br/sh/oauth2/driver/callback"),
+		token.WithAuthURL("https://accounts.google.com/o/oauth2/auth"),
+		token.WithTokenURL("https://oauth2.googleapis.com/token"),
+	)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	go receiveMessage(cl)
-	go cl.GetToken()
+	go cl.GetToken(true)
 
 	for {
 		select {
