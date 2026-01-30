@@ -278,3 +278,7 @@ func (self *ClientAuth) GetToken(fromURL ...bool) {
 	byteToken := self.TokenToBytes(tok)
 	self.Token <- TokenEvent{Token: tok, BytesToken: byteToken, TokenSource: conf.TokenSource(ctx, tok)}
 }
+
+func (self *ClientAuth) SetCode(code string) {
+	self.Code <- CodeEvent{Code: code}
+}

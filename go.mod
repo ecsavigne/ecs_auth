@@ -4,6 +4,7 @@ go 1.25.5
 
 require (
 	github.com/ecsavigne/ecs_socket v1.0.7
+	github.com/joho/godotenv v1.5.1
 	golang.org/x/oauth2 v0.34.0
 	google.golang.org/api v0.263.0
 )

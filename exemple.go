@@ -7,6 +7,7 @@ import (
 	"os"
 
 	token "github.com/ecsavigne/ecs_auth/clientAuth"
+	"github.com/joho/godotenv"
 	"google.golang.org/api/drive/v3"
 
 	"github.com/ecsavigne/ecs_socket/client"
@@ -53,8 +54,13 @@ func NewServiceDrive() {
 	// 	token.WithAuthURL("https://www.facebook.com/v24.0/dialog/oauth"),
 	// 	token.WithTokenURL("https://graph.facebook.com/v24.0/oauth/access_token"),
 	// )
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error al cargar el archivo .env")
+	}
+
 	cl, err := token.NewClientAuth(
-		token.WithClientID(os.Getenv("CLIENt_ID")),
+		token.WithClientID(os.Getenv("CLIENT_ID")),
 		token.WithClientSecret(os.Getenv("CLIENT_SECRET")),
 		token.WithScopes([]string{
 			drive.DriveScope, drive.DriveAppdataScope,
