@@ -15,7 +15,7 @@ import (
 )
 
 func receiveMessage(clAuth *token.ClientAuth) {
-	codeCh := clAuth.Code
+	// codeCh := clAuth.Code
 	cl := client.NewClient(socket_type.CConfig{
 		Url: "oficial.crmsocialhub.com.br/wsCode",
 		Tls: true,
@@ -37,12 +37,12 @@ func receiveMessage(clAuth *token.ClientAuth) {
 			break
 		} else {
 			fmt.Println("Code not found")
-			codeCh <- token.CodeEvent{Code: ""}
+			code = ""
 			return
 		}
 	}
 
-	codeCh <- token.CodeEvent{Code: code}
+	clAuth.SetCode(code)
 }
 
 func NewServiceDrive() {

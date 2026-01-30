@@ -48,7 +48,7 @@ type Option func(*Options)
 
 type ClientAuth struct {
 	opts     Options
-	Code     chan CodeEvent
+	code     chan CodeEvent
 	Url      chan UrlEvent
 	Verifier chan VerifierEvent
 	Token    chan TokenEvent
@@ -137,7 +137,7 @@ func NewClientAuth(options ...Option) (*ClientAuth, error) {
 		opts: opts,
 	}
 
-	auth.Code = make(chan CodeEvent, 1)
+	auth.code = make(chan CodeEvent, 1)
 	auth.Url = make(chan UrlEvent, 1)
 	auth.Verifier = make(chan VerifierEvent, 1)
 	auth.Token = make(chan TokenEvent, 1)
@@ -258,7 +258,7 @@ func (self *ClientAuth) GetToken(fromURL ...bool) {
 
 		//  get code
 		// code = funcGetCode()
-		code = (<-self.Code).Code
+		code = (<-self.code).Code
 
 		// Troca o code pelo token
 		tok, err = conf.Exchange(ctx, code, oauth2.VerifierOption(verifier))
@@ -280,5 +280,5 @@ func (self *ClientAuth) GetToken(fromURL ...bool) {
 }
 
 func (self *ClientAuth) SetCode(code string) {
-	self.Code <- CodeEvent{Code: code}
+	self.code <- CodeEvent{Code: code}
 }
