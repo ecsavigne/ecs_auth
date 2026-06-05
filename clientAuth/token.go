@@ -19,7 +19,7 @@ var (
 		drive.DriveScope, drive.DriveAppdataScope,
 		drive.DriveMetadataScope, drive.DriveMetadataReadonlyScope,
 	}
-	conf = &oauth2.Config{}
+	conf = new(oauth2.Config)
 )
 
 type CodeEvent struct {
@@ -121,9 +121,9 @@ func NewClientAuth(options ...Option) (*ClientAuth, error) {
 		return nil, fmt.Errorf("no client secret provided")
 	}
 
-	if opts.authConfig.Endpoint.AuthURL == "" {
-		return nil, fmt.Errorf("no auth url provided")
-	}
+	// if opts.authConfig.Endpoint.AuthURL == "" {
+	// 	return nil, fmt.Errorf("no auth url provided")
+	// }
 
 	if opts.authConfig.RedirectURL == "" {
 		return nil, fmt.Errorf("no redirect url provided")
@@ -230,7 +230,8 @@ func randState() string {
 // to ask for permission for the scopes specified above.
 // The HTTP Client returned by conf.Client will refresh the token as necessary.
 // fromURL indicates whether the token should be retrieved from the URL
-func (self *ClientAuth) GetToken(fromURL ...bool) {
+// isVerifier indicates whether the token should be retrieved from the verifier
+func (self *ClientAuth) GetToken(isVerifier bool, fromURL ...bool) {
 	var (
 		tok *oauth2.Token = self.GetTokenOfFile("token.json")
 		err error
@@ -239,12 +240,14 @@ func (self *ClientAuth) GetToken(fromURL ...bool) {
 
 	//  if not existe token or not valid
 	if tok == nil {
-
+		verifier := ""
 		if len(fromURL) > 0 && fromURL[0] {
 			go self.GetUrlAuth()
 		} else {
-			verifier := oauth2.GenerateVerifier()
-			self.Verifier <- VerifierEvent{verifier}
+			if isVerifier {
+				verifier = oauth2.GenerateVerifier()
+			}
+			// self.Verifier <- VerifierEvent{verifier}
 		}
 		// Use the authorization code that is pushed to the redirect
 		// URL. Exchange will do the handshake to retrieve the
@@ -252,7 +255,7 @@ func (self *ClientAuth) GetToken(fromURL ...bool) {
 		// conf.Client will refresh the token as necessary.
 		var code string
 
-		verifier := (<-self.Verifier).Verifier
+		// verifier = (<-self.Verifier).Verifier
 		// Redirect user to consent page to ask for permission
 		// for the scopes specified above.
 
@@ -261,7 +264,12 @@ func (self *ClientAuth) GetToken(fromURL ...bool) {
 		code = (<-self.code).Code
 
 		// Troca o code pelo token
-		tok, err = conf.Exchange(ctx, code, oauth2.VerifierOption(verifier))
+		if isVerifier {
+			tok, err = conf.Exchange(ctx, code, oauth2.VerifierOption(verifier))
+		} else {
+			tok, err = conf.Exchange(ctx, code)
+		}
+
 		if err != nil {
 			fmt.Println(err)
 		}
